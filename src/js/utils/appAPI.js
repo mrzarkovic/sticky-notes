@@ -25,5 +25,20 @@ module.exports = {
                 console.log(error);
             }.bind(this)
         });
+    },
+
+    removeNote: function (noteId) {
+        $.ajax({
+            url: 'https://api.mlab.com/api/1/databases/stickypad/collections/notes/' + noteId + '?apiKey=' + key,
+            type: 'DELETE',
+            async: true,
+            timeout: 300000,
+            success: function (data) {
+                console.log('Note deleted.');
+            }.bind(this),
+            error: function (xhr, status, error) {
+                console.log(error);
+            }.bind(this)
+        });
     }
 };

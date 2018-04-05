@@ -19995,6 +19995,13 @@ const AppActions = {
             actionType: AppConstants.RECEIVE_NOTES,
             notes: notes
         });
+    },
+
+    removeNote: function (noteId) {
+        AppDispatcher.handleViewAction({
+            actionType: AppConstants.REMOVE_NOTE,
+            noteId: noteId
+        });
     }
 };
 
@@ -20105,13 +20112,17 @@ const Note = React.createClass({displayName: "Note",
     render: function () {
         return (
             React.createElement("div", {className: "column"}, 
-                React.createElement("div", {className: "note"}, 
+                React.createElement("div", {className: "note", onDoubleClick:  this.removeNote.bind(this, this.props.note._id) }, 
                     React.createElement("p", null, 
                          this.props.note.text
                     )
                 )
             )
         );
+    },
+
+    removeNote: function (id) {
+        AppActions.removeNote(id.$oid);
     }
 });
 
@@ -20143,7 +20154,8 @@ module.exports = NoteList;
 },{"../actions/AppActions":164,"../stores/AppStore":172,"./Note":167,"react":163}],169:[function(require,module,exports){
 module.exports = {
     ADD_NOTE: 'ADD_NOTE',
-    RECEIVE_NOTES: 'RECEIVE_NOTES'
+    RECEIVE_NOTES: 'RECEIVE_NOTES',
+    REMOVE_NOTE: 'REMOVE_NOTE'
 };
 
 },{}],170:[function(require,module,exports){
@@ -20200,6 +20212,11 @@ const AppStore = assign({}, EventEmitter.prototype, {
     setNotes: function (notes) {
         _notes = notes;
     },
+
+    removeNote: function (noteId) {
+        let index = _notes.findIndex( n => n._id.$oid == noteId);
+        _notes.splice(index, 1);
+    },
     
     emitChange: function () {
         this.emit(CHANGE_EVENT);
@@ -20238,6 +20255,17 @@ AppDispatcher.register(function (payload) {
 
             AppStore.emitChange();
             break;
+        case AppConstants.REMOVE_NOTE:
+            console.log('Removing note...');
+
+            // Store Remove
+            AppStore.removeNote(action.noteId);
+
+            // API Remove
+            AppAPI.removeNote(action.noteId);
+
+            AppStore.emitChange();
+            break;
     }
 
     return true;
@@ -20268,6 +20296,21 @@ module.exports = {
             cache: false,
             success: function (data) {
                 AppActions.receiveNotes(data);
+            }.bind(this),
+            error: function (xhr, status, error) {
+                console.log(error);
+            }.bind(this)
+        });
+    },
+
+    removeNote: function (noteId) {
+        $.ajax({
+            url: 'https://api.mlab.com/api/1/databases/stickypad/collections/notes/' + noteId + '?apiKey=' + key,
+            type: 'DELETE',
+            async: true,
+            timeout: 300000,
+            success: function (data) {
+                console.log('Note deleted.');
             }.bind(this),
             error: function (xhr, status, error) {
                 console.log(error);
